@@ -2,6 +2,11 @@
 
 WoWS Ship Picker is a web-based tool designed to help you randomly select a World of Warships ship to play. It allows you to connect to your Wargaming account to load your available ships, apply filters based on tier, nation, and type, and spin a wheel to pick your next battle vessel. It is especially useful for streamers, featuring a green screen mode and a customisable wheel palette.
 
+## Live Demo
+
+You can use the app live in your browser (no download needed) at:
+**[https://www.bjsolutions.no/WoWSShipPicker](https://www.bjsolutions.no/WoWSShipPicker)**
+
 ## Features
 
 - **Wargaming Authentication**: Log in securely using Wargaming's official OAuth to automatically fetch your owned ships and statistics.
