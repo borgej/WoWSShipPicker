@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WoWS Ship Picker</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <!-- Google Analytics — consent mode: denied by default until user accepts -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', { analytics_storage: 'denied' });
+    (function() {
+      try {
+        var m = document.cookie.split('; ').find(function(r){ return r.startsWith('mw.consent='); });
+        if (m) {
+          var v = JSON.parse(decodeURIComponent(m.slice('mw.consent='.length)));
+          if (v && v.analytics) gtag('consent', 'update', { analytics_storage: 'granted' });
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=__GA_MEASUREMENT_ID__"></script>
+  <script>
+    gtag('js', new Date());
+    gtag('config', '__GA_MEASUREMENT_ID__');
+  </script>
+  <link rel="stylesheet" href="./styles.css" />
+  <script>(function(){var t=localStorage.getItem('mw.theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');})()</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- ── Left: account setup + controls ─────────────────────────────────── -->
+    <div class="leftbar">
+      <div class="stream-title-row">
+        <div class="stream-title"><i class="fa-solid fa-anchor"></i> WoWS Ship Picker</div>
+        <button id="themeSwitchBtn" title="Toggle light/dark mode"><i class="fa-solid fa-sun"></i></button>
+      </div>
+      <div class="stream-subtitle">made with <span class="heart" role="img" aria-label="love"><i class="fa-solid fa-heart" aria-hidden="true"></i></span> by <a href="http://www.twitch.tv/beejeey" target="_blank" rel="noopener noreferrer">BeeJeey</a> &middot; <a href="#" id="cookieSettingsLink" class="cookie-settings-link">Cookie settings</a> &middot; <span class="app-version">v1.0</span><br><a href="https://www.bjsolutions.no/FortuneWheel5000/" target="_blank" rel="noopener noreferrer" class="cross-app-link">Also check out FortuneWheel5000</a></div>
+
+      <div class="donate-row" id="donateRow">
+        <div class="donate-group">
+          <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="beejeey" data-color="#FFDD00" data-emoji="☕" data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
+          <span class="donate-text">If you like and enjoy this software, please consider making a small donation to the creator.</span>
+        </div>
+      </div>
+
+      <!-- Account -->
+      <div class="card">
+        <h3 style="margin-bottom:10px"><i class="fa-solid fa-user"></i> Account</h3>
+        <div class="settings-panel">
+          <div class="input-group">
+            <label for="wowsAccountId">WoWS Username</label>
+            <input id="wowsAccountId" type="text" placeholder="e.g. BeeJeey" autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label for="wowsRegion">Server Region</label>
+            <select id="wowsRegion" class="wows-select">
+              <option value="eu">EU</option>
+              <option value="na">NA</option>
+              <option value="asia">ASIA</option>
+              <option value="ru">RU</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1">
+            <button id="wowsLoadBtn" class="btn-primary" style="width:100%">Load My Ships</button>
+          </div>
+          <div id="wowsStatus" style="display:none; grid-column: 1 / -1; font-size:12px; font-weight:700; padding:4px 0"></div>
+          <div style="grid-column: 1 / -1; margin-top:4px">
+            <div id="wowsAuthStatus" class="wows-auth-status wows-auth-hint"></div>
+            <div style="display:flex; gap:8px; margin-top:6px; align-items:center">
+              <button id="wowsLoginBtn" class="wows-login-btn"><i class="fa-solid fa-right-to-bracket"></i> Login with Wargaming</button>
+              <button id="wowsLogoutBtn" class="btn-secondary" style="display:none; font-size:12px; padding:5px 10px">Sign out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters — revealed after ships load -->
+      <div id="wowsFilters" style="display:none">
+        <div class="card">
+          <div class="settings-panel">
+            <div class="input-group" style="grid-column: 1 / -1">
+              <label>Tier Range</label>
+              <div class="tier-range-row">
+                <select id="wowsTierMin" class="wows-select"><option value="">From: Any</option></select>
+                <span class="tier-range-sep">–</span>
+                <select id="wowsTierMax" class="wows-select"><option value="">To: Any</option></select>
+              </div>
+            </div>
+            <div class="input-group" style="grid-column: 1 / -1">
+              <label>Ship Types <span id="wowsTypeSelectAll" style="font-size:11px;cursor:pointer;color:#94a3b8;margin-left:8px;font-weight:400">all / none</span></label>
+              <div id="wowsTypeCheckboxes" class="ship-type-checkboxes"></div>
+            </div>
+            <div class="input-group">
+              <label for="wowsNationFilter">Nation</label>
+              <select id="wowsNationFilter" class="wows-select"><option value="">Any</option></select>
+            </div>
+            <div style="grid-column: 1 / -1">
+              <button id="wowsSpinBtn" class="btn-primary" style="width:100%; font-size:15px; padding:12px"><i class="fa-solid fa-dice"></i> Spin for Ship</button>
+            </div>
+            <div style="grid-column: 1 / -1; display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+              <button id="wowsPaletteBtn" class="btn-palette-toggle"><i class="fa-solid fa-palette"></i> Wheel palette</button>
+              <button id="wowsGreenScreenBtn" class="btn-secondary" style="font-size:12px; padding:5px 10px">Green Screen</button>
+            </div>
+            <div style="grid-column: 1 / -1; display:flex; gap:8px; flex-wrap:wrap">
+              <label class="toggle" title="Show win rate stats in the result">
+                <input id="wowsShowStatsToggle" type="checkbox" checked /> <span class="toggle-icon"><i class="fa-solid fa-chart-bar"></i></span> Show stats
+              </label>
+              <label class="toggle" title="Tick sound while spinning">
+                <input id="wowsTickToggle" type="checkbox" /> <span class="toggle-icon"><i class="fa-solid fa-volume-high"></i></span> Tick
+              </label>
+              <label class="toggle" title="Confetti when ship is revealed">
+                <input id="wowsConfettiToggle" type="checkbox" checked /> <span class="toggle-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span> Confetti
+              </label>
+              <label class="toggle" title="Randomize the order of Tier / Type / Nation spins">
+                <input id="wowsRandomOrderToggle" type="checkbox" /> <span class="toggle-icon"><i class="fa-solid fa-shuffle"></i></span> Random order
+              </label>
+            </div>
+          </div>
+          <p class="wows-hint">Set a tier range or lock type/nation — leave Nation on "Any" to let the wheel decide.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Centre: view tabs + content ────────────────────────────────────── -->
+    <div class="main-area">
+      <!-- View tabs — shown after ships are loaded -->
+      <div id="viewTabs" class="view-tabs" style="display:none">
+        <button class="view-tab active" data-view="wheel"><i class="fa-solid fa-anchor"></i> Random Ship</button>
+        <button class="view-tab" data-view="stats"><i class="fa-solid fa-chart-bar"></i> Statistics</button>
+      </div>
+
+      <!-- Wheel view -->
+      <div id="wheelView" class="view-panel wheel-view-panel">
+        <div class="wheel-pointer-wrap">
+          <div class="wheel-pointer"></div>
+        </div>
+        <div id="shipWheelStage" class="ship-wheel-stage"></div>
+      </div>
+
+      <!-- Stats view -->
+      <div id="statsView" class="view-panel stats-view-panel" style="display:none">
+
+        <!-- Stats filter bar -->
+        <div class="stats-filter-bar card">
+          <div class="stats-filter-inner">
+            <div class="input-group stats-filter-group">
+              <label for="statsNationFilter">Nation</label>
+              <select id="statsNationFilter" class="wows-select"><option value="">All nations</option></select>
+            </div>
+            <div class="input-group stats-filter-group">
+              <label>Tier</label>
+              <div class="tier-range-row">
+                <select id="statsTierMin" class="wows-select"><option value="">From</option></select>
+                <span class="tier-range-sep">–</span>
+                <select id="statsTierMax" class="wows-select"><option value="">To</option></select>
+              </div>
+            </div>
+            <div class="input-group stats-filter-group" style="flex:2">
+              <label>Ship Types <span id="statsTypeSelectAll" style="font-size:11px;cursor:pointer;color:#94a3b8;margin-left:8px;font-weight:400">all / none</span></label>
+              <div id="statsTypeCheckboxes" class="ship-type-checkboxes"></div>
+            </div>
+            <div class="input-group stats-filter-group">
+              <label>Game Mode</label>
+              <div id="statsModeCheckboxes" class="ship-type-checkboxes">
+                <label class="ship-type-cb-label"><input type="checkbox" value="pvp"  checked /> Random</label>
+                <label class="ship-type-cb-label"><input type="checkbox" value="rank" checked /> Ranked</label>
+                <label class="ship-type-cb-label"><input type="checkbox" value="pve"  checked /> Co-op</label>
+              </div>
+            </div>
+            <div class="input-group stats-filter-group">
+              <label>Ship name</label>
+              <input id="statsSearch" type="text" placeholder="Search…" autocomplete="off" class="wows-select" style="width:130px" />
+            </div>
+            <div class="input-group stats-filter-group">
+              <label>Min battles</label>
+              <input id="statsMinBattles" type="number" min="0" placeholder="Any" class="wows-select" style="width:90px" />
+            </div>
+            <div class="input-group stats-filter-group">
+              <label>Win Rate %</label>
+              <div class="tier-range-row">
+                <input id="statsWrMin" type="number" min="0" max="100" step="1" placeholder="Min" class="wows-select" style="width:60px" />
+                <span class="tier-range-sep">–</span>
+                <input id="statsWrMax" type="number" min="0" max="100" step="1" placeholder="Max" class="wows-select" style="width:60px" />
+              </div>
+            </div>
+            <div class="stats-filter-group" style="align-self:flex-end;display:flex;gap:8px;flex-shrink:0">
+              <button id="statsResetBtn" class="btn-secondary" style="white-space:nowrap">Reset filters</button>
+              <button id="statsLoadBtn" class="btn-primary" style="white-space:nowrap;display:none">Load Stats</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats table -->
+        <div class="stats-table-wrap">
+          <div id="statsStatus" style="display:none; padding:12px 0; font-size:13px; font-weight:700; text-align:center"></div>
+          <table class="stats-table" id="statsTable" style="display:none">
+            <thead id="statsTableHead"></thead>
+            <tbody id="statsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right: ship history ─────────────────────────────────────────────── -->
+    <div id="shipHistorySidebar" class="sidebar ship-history-sidebar">
+      <div class="ship-history-header">
+        <span class="ship-history-title">Ship History</span>
+        <button id="clearShipHistoryBtn" class="btn-secondary" style="padding:4px 10px; font-size:11px">Clear</button>
+      </div>
+      <div id="shipHistoryList" style="flex:1 1 0; overflow-y:auto; min-height:0; padding-right:2px"></div>
+    </div>
+
+  </div>
+
+  <!-- Ship result modal -->
+  <div id="shipResultModal" class="winner-announcement" style="display:none">
+    <div class="winner-card ship-result-card">
+      <h2><i class="fa-solid fa-anchor"></i> Random Ship</h2>
+      <img id="shipResultImage" class="ship-result-image" src="" alt="" style="display:none" />
+      <div id="shipResultTier" class="ship-result-tier"></div>
+      <div id="shipResultName" class="winner-name ship-result-name"></div>
+      <div id="shipResultMeta" class="ship-result-meta"></div>
+      <div id="shipResultStats" class="ship-result-stats" style="display:none"></div>
+      <div style="display:flex; gap:8px; justify-content:center; margin-top:8px; flex-wrap:wrap">
+        <button id="spinAgainBtn" class="btn-primary"><i class="fa-solid fa-rotate-right"></i> Spin Again</button>
+        <button id="closeShipResultBtn" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ship detail modal -->
+  <div id="shipDetailModal" class="winner-announcement" style="display:none">
+    <div class="winner-card ship-result-card" style="min-width:340px;max-width:460px;position:relative">
+      <button id="closeShipDetailBtn" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1"><i class="fa-solid fa-xmark"></i></button>
+      <img id="shipDetailImage" class="ship-result-image" src="" alt="" style="display:none" />
+      <div id="shipDetailTier" class="ship-result-tier"></div>
+      <div id="shipDetailName" class="winner-name ship-result-name"></div>
+      <div id="shipDetailMeta" class="ship-result-meta"></div>
+      <div id="shipDetailStats" class="ship-result-stats" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- Palette modal -->
+  <div id="paletteModal" class="palette-modal" style="display:none">
+    <div class="palette-modal-card">
+      <div class="palette-modal-header">
+        <h3><i class="fa-solid fa-palette"></i> Wheel Palette</h3>
+        <button id="closePaletteBtn" class="palette-close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="paletteGrid" class="palette-grid"></div>
+    </div>
+  </div>
+
+  <!-- Confirm modal -->
+  <div id="confirmModal" class="winner-announcement" style="z-index:2001;display:none">
+    <div class="winner-card" style="min-width:340px;">
+      <h2 id="confirmTitle">Please confirm</h2>
+      <div id="confirmMessage" style="margin:12px 0 20px;opacity:.95"></div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button id="confirmYes" class="btn-danger">Yes</button>
+        <button id="confirmNo" class="btn-secondary">No</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Green screen toggle button -->
+  <button id="exitGreenScreenBtn" title="Exit green screen mode"><i class="fa-solid fa-xmark"></i> Exit Green Screen</button>
+  <!-- Floating spin button (green screen overlay mode) -->
+  <button id="shipGsSpinBtn" title="Spin for a new ship" style="display:none"><i class="fa-solid fa-dice"></i> Spin for Ship</button>
+
+  <canvas id="confettiCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:1500"></canvas>
+  <div id="toastContainer" style="position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:2000"></div>
+
+  <!-- Cookie consent banner -->
+  <div id="consentBanner" class="consent-banner" style="display:none" role="dialog" aria-labelledby="consentTitle" aria-modal="true">
+    <div class="consent-box">
+      <h3 id="consentTitle">Cookie &amp; Storage Notice</h3>
+      <p class="consent-intro">This app uses browser storage to save your settings, and optionally Google Analytics to help the developer understand usage.</p>
+      <div class="consent-categories">
+        <div class="consent-category">
+          <div class="consent-cat-header">
+            <strong>Functional storage</strong>
+            <span class="consent-required">Always on</span>
+          </div>
+          <p>Saves your settings and spin history locally in your browser. This data never leaves your device.</p>
+        </div>
+        <label class="consent-category consent-category-toggle">
+          <div class="consent-cat-header">
+            <strong>Analytics — Google Analytics</strong>
+            <input type="checkbox" id="consentAnalytics" />
+          </div>
+          <p>Helps the developer understand how many people use the app (page views, session counts). No personal data is ever collected.</p>
+        </label>
+      </div>
+      <div class="consent-actions">
+        <button id="consentRejectAll" class="btn-secondary">Only necessary</button>
+        <button id="consentSaveChoices" class="btn-secondary">Save choices</button>
+        <button id="consentAcceptAll" class="btn-primary">Accept all</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/cookies.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/wheel.js"></script>
+  <script src="./js/wows.js"></script>
+  <script src="./js/stats-table.js"></script>
+  <script src="./js/ship-mode.js"></script>
+  <script src="./js/consent.js"></script>
+  <script>
+    (function() {
+      var btn = document.getElementById('themeSwitchBtn');
+      var saved = localStorage.getItem('mw.theme');
+      var light = saved === 'light';
+      function apply(isLight) {
+        document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+        btn.innerHTML = isLight
+          ? '<i class="fa-solid fa-moon"></i>'
+          : '<i class="fa-solid fa-sun"></i>';
+        btn.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+      }
+      apply(light);
+      btn.addEventListener('click', function() {
+        light = !light;
+        localStorage.setItem('mw.theme', light ? 'light' : 'dark');
+        apply(light);
+      });
+    })();
+  </script>
+</body>
+</html>
